@@ -2,6 +2,10 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
+
+	"log"
+	"net/http"
 
 	"github.com/TechBowl-japan/go-stations/model"
 	"github.com/TechBowl-japan/go-stations/service"
@@ -19,10 +23,79 @@ func NewTODOHandler(svc *service.TODOService) *TODOHandler {
 	}
 }
 
+// ServeHTTP implements http.Handler interface.
+func (h *TODOHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method == http.MethodPost {
+		// w, r
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+		// 1. リクエストボディの文字列を変数に取り出す
+		rawBody := make([]byte, r.ContentLength)
+		_, err := r.Body.Read(rawBody)
+		// //fmt.Println(string(rawBody), "頼む")
+		if err != nil {
+			log.Println(err)
+		}
+		// rawBody にリクエストボディの文字列が入っている状態
+
+		// //fmt.Println(rawBody)
+
+		// 2. リクエストボディを構造体にする
+
+		var body model.CreateTODORequest
+
+		err = json.Unmarshal(rawBody, &body) // 文字列をもとに、構造体にデータを詰め込む関数
+		// //fmt.Println("body.subject", body.Subject)'
+
+		if err != nil {
+			log.Println("err:", err)
+		}
+
+		if body.Subject == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		// body にはリクエストボディのデータが入っている状態
+
+		res, err := h.Create(r.Context(), &body)
+		if err != nil {
+			//fmt.Println("err", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// ここでレスポンスを整形する
+		//fmt.Println(&res)
+		responseJSON, err := json.Marshal(&res)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		_, err = w.Write(responseJSON)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+	}
+}
+
 // Create handles the endpoint that creates the TODO.
 func (h *TODOHandler) Create(ctx context.Context, req *model.CreateTODORequest) (*model.CreateTODOResponse, error) {
-	_, _ = h.svc.CreateTODO(ctx, "", "")
-	return &model.CreateTODOResponse{}, nil
+
+	some, thing := h.svc.CreateTODO(ctx, req.Subject, req.Description)
+	// //fmt.Println("err", err)
+	// //fmt.Println("some", some)
+	// //fmt.Println("create")
+	if thing != nil {
+		return &model.CreateTODOResponse{}, thing
+	}
+
+	return &model.CreateTODOResponse{TODO: *some}, nil
 }
 
 // Read handles the endpoint that reads the TODOs.
