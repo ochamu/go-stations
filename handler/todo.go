@@ -81,18 +81,77 @@ func (h *TODOHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+	} else if r.Method == http.MethodPut {
+		// w, r
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+		// 1. リクエストボディの文字列を変数に取り出す
+		rawBody := make([]byte, r.ContentLength)
+		_, err := r.Body.Read(rawBody)
+		// //fmt.Println(string(rawBody), "頼む")
+		if err != nil {
+			log.Println(err)
+		}
+		// rawBody にリクエストボディの文字列が入っている状態
+
+		// //fmt.Println(rawBody)
+
+		// 2. リクエストボディを構造体にする
+
+		var body model.UpdateTODORequest
+
+		err = json.Unmarshal(rawBody, &body) // 文字列をもとに、構造体にデータを詰め込む関数
+		// //fmt.Println("body.subject", body.Subject)'
+
+		if err != nil {
+			log.Println("err:", err)
+		}
+
+		if body.ID == 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		if body.Subject == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		// body にはリクエストボディのデータが入っている状態
+
+		res, err := h.Update(r.Context(), &body)
+		if err != nil {
+			//fmt.Println("err", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// ここでレスポンスを整形する
+		//fmt.Println(&res)
+		responseJSON, err := json.Marshal(&res)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		_, err = w.Write(responseJSON)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 }
 
 // Create handles the endpoint that creates the TODO.
 func (h *TODOHandler) Create(ctx context.Context, req *model.CreateTODORequest) (*model.CreateTODOResponse, error) {
 
-	some, thing := h.svc.CreateTODO(ctx, req.Subject, req.Description)
+	some, err := h.svc.CreateTODO(ctx, req.Subject, req.Description)
 	// //fmt.Println("err", err)
 	// //fmt.Println("some", some)
 	// //fmt.Println("create")
-	if thing != nil {
-		return &model.CreateTODOResponse{}, thing
+	if err != nil {
+		return &model.CreateTODOResponse{}, err
 	}
 
 	return &model.CreateTODOResponse{TODO: *some}, nil
@@ -106,8 +165,16 @@ func (h *TODOHandler) Read(ctx context.Context, req *model.ReadTODORequest) (*mo
 
 // Update handles the endpoint that updates the TODO.
 func (h *TODOHandler) Update(ctx context.Context, req *model.UpdateTODORequest) (*model.UpdateTODOResponse, error) {
-	_, _ = h.svc.UpdateTODO(ctx, 0, "", "")
-	return &model.UpdateTODOResponse{}, nil
+
+	some, err := h.svc.UpdateTODO(ctx, req.ID, req.Subject, req.Description)
+	// //fmt.Println("err", err)
+	// //fmt.Println("some", some)
+	// //fmt.Println("create")
+	if err != nil {
+		return &model.UpdateTODOResponse{}, err
+	}
+
+	return &model.UpdateTODOResponse{TODO: *some}, nil
 }
 
 // Delete handles the endpoint that deletes the TODOs.
