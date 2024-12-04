@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 
+	"fmt"
+	"strconv"
+
 	"log"
 	"net/http"
 
@@ -140,6 +143,49 @@ func (h *TODOHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+	} else if r.Method == http.MethodGet {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		var req model.ReadTODORequest
+		req.PrevID, _ = strconv.ParseInt(r.URL.Query().Get("prev_id"), 10, 64)
+		sizeStr := r.URL.Query().Get("size")
+		if sizeStr == "" {
+			req.Size = 5
+		} else {
+			size, err := strconv.ParseInt(sizeStr, 10, 64)
+			if err != nil || size <= 0 {
+				req.Size = 5
+			} else {
+				req.Size = size
+			}
+		}
+		res, err := h.Read(r.Context(), &req)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		json.NewEncoder(w).Encode(res)
+	} else if r.Method == http.MethodDelete {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		var req model.DeleteTODORequest
+		err := json.NewDecoder(r.Body).Decode(&req)
+		if err != nil {
+			fmt.Println(err)
+		}
+		if req.IDs == nil {
+			w.WriteHeader(http.StatusBadRequest)
+		}
+		if len(req.IDs) == 0 {
+			w.WriteHeader(http.StatusBadRequest)
+		}
+		err = h.svc.DeleteTODO(r.Context(), req.IDs)
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+		}
+		err = json.NewEncoder(w).Encode(&model.DeleteTODOResponse{})
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Println(err)
+		}
 	}
 }
 
@@ -159,8 +205,18 @@ func (h *TODOHandler) Create(ctx context.Context, req *model.CreateTODORequest) 
 
 // Read handles the endpoint that reads the TODOs.
 func (h *TODOHandler) Read(ctx context.Context, req *model.ReadTODORequest) (*model.ReadTODOResponse, error) {
-	_, _ = h.svc.ReadTODO(ctx, 0, 0)
-	return &model.ReadTODOResponse{}, nil
+	todos, err := h.svc.ReadTODO(ctx, req.PrevID, req.Size)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// todoValues := make([]model.TODO, len(todos))
+	// for i, todoPtr := range todos {
+	// 	todoValues[i] = *todoPtr
+	// }
+
+	return &model.ReadTODOResponse{TODOs: todos}, nil
 }
 
 // Update handles the endpoint that updates the TODO.
