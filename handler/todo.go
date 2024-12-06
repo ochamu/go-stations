@@ -238,3 +238,15 @@ func (h *TODOHandler) Delete(ctx context.Context, req *model.DeleteTODORequest) 
 	_ = h.svc.DeleteTODO(ctx, nil)
 	return &model.DeleteTODOResponse{}, nil
 }
+
+// panic
+
+type DoPanicHandler struct{}
+
+func NewDoPanicHandler() *DoPanicHandler {
+	return &DoPanicHandler{}
+}
+
+func (h *DoPanicHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	panic("ok")
+}
