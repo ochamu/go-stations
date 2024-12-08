@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/TechBowl-japan/go-stations/handler/middleware"
 	"github.com/TechBowl-japan/go-stations/model"
 	"github.com/TechBowl-japan/go-stations/service"
 )
@@ -249,4 +250,22 @@ func NewDoPanicHandler() *DoPanicHandler {
 
 func (h *DoPanicHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	panic("ok")
+}
+
+// os
+
+type DeviceOSHandler struct{}
+
+func NewDeviceOSHandler() *DeviceOSHandler {
+	return &DeviceOSHandler{}
+}
+
+func (h *DeviceOSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	os := r.Context().Value(middleware.OSContextKey)
+	if os == nil {
+		http.Error(w, "Error", http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprintf(w, "OS: %s", os)
 }
