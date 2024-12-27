@@ -261,7 +261,7 @@ func NewDeviceOSHandler() *DeviceOSHandler {
 }
 
 func (h *DeviceOSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	os := r.Context().Value(middleware.OSContextKey)
+	os := r.Context().Value(middleware.OSContextKey{})
 	if os == nil {
 		http.Error(w, "Error", http.StatusInternalServerError)
 		return
@@ -269,3 +269,5 @@ func (h *DeviceOSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Fprintf(w, "OS: %s", os)
 }
+
+// log

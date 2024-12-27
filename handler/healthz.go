@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"time"
 
 	"log"
 
@@ -23,6 +24,7 @@ func NewHealthzHandler() *HealthzHandler {
 func (h *HealthzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	res := model.NewHealthzHandler("OK")
+	time.Sleep(2 * time.Second)
 	if err := json.NewEncoder(w).Encode(res); err != nil {
 		log.Println(err)
 	}
