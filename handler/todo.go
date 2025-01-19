@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"time"
 
 	"fmt"
 	"strconv"
@@ -145,6 +146,11 @@ func (h *TODOHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else if r.Method == http.MethodGet {
+		// Graceful Shutdown
+		for {
+			fmt.Println("waiwai")
+			time.Sleep(1 * time.Second)
+		}
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		var req model.ReadTODORequest
 		req.PrevID, _ = strconv.ParseInt(r.URL.Query().Get("prev_id"), 10, 64)

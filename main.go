@@ -1,10 +1,14 @@
 package main
 
 import (
+	"context"
 	"log"
-	"os"
-	"time"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github.com/TechBowl-japan/go-stations/db"
 	"github.com/TechBowl-japan/go-stations/handler/router"
 )
@@ -51,6 +55,33 @@ func realMain() error {
 	mux := router.NewRouter(todoDB)
 
 	// TODO: サーバーをlistenする
-	http.ListenAndServe(port, mux)
+	// if err := http.ListenAndServe(port, mux); err != nil {
+	// 	fmt.Printf("aaa")
+	// }
+	// Graceful Shutdown
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, os.Interrupt, os.Kill)
+	defer stop()
+
+	srv := &http.Server{
+		Addr:    port,
+		Handler: mux,
+	}
+
+	go func() {
+		err := srv.ListenAndServe()
+		if err != nil {
+
+		}
+	}()
+
+	<-ctx.Done()
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	err = srv.Shutdown(ctx)
+	if err != nil {
+		return err
+	}
 	return nil
 }
